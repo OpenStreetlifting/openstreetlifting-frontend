@@ -85,11 +85,22 @@ jobs:
           fi
 
       - name: Update package.json version
+        id: version_update
         run: |
-          npm version ${{ inputs.version }} --no-git-tag-version
-          echo "Updated package.json to version ${{ inputs.version }}"
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          TARGET_VERSION="${{ inputs.version }}"
+
+          if [ "$CURRENT_VERSION" = "$TARGET_VERSION" ]; then
+            echo "Version is already $TARGET_VERSION, skipping update"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            npm version $TARGET_VERSION --no-git-tag-version
+            echo "Updated package.json from $CURRENT_VERSION to $TARGET_VERSION"
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: Commit and push version change
+        if: steps.version_update.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -97,30 +108,47 @@ jobs:
           git commit -m "chore: bump version to ${{ inputs.version }}"
           git push origin main
 
-      - name: Check if tag already exists
+      - name: Create and push tag
+        id: create_tag
         run: |
+          git fetch --tags
+
           if git rev-parse "v${{ inputs.version }}" >/dev/null 2>&1; then
-            echo "Error: Tag v${{ inputs.version }} already exists"
-            exit 1
+            echo "Tag v${{ inputs.version }} already exists, skipping tag creation"
+            echo "created=false" >> $GITHUB_OUTPUT
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}"
+            git push origin "v${{ inputs.version }}"
+            echo "Created and pushed tag v${{ inputs.version }}"
+            echo "created=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create and push tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}"
-          git push origin "v${{ inputs.version }}"
-
       - name: Create GitHub Release
-        uses: actions/create-release@v1
+        id: create_release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ inputs.version }}
-          release_name: Release v${{ inputs.version }}
-          body: ${{ inputs.release_notes }}
-          draft: false
-          prerelease: ${{ contains(inputs.version, '-') }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if release already exists
+          if gh release view "v${{ inputs.version }}" >/dev/null 2>&1; then
+            echo "Release v${{ inputs.version }} already exists, skipping release creation"
+            echo "created=false" >> $GITHUB_OUTPUT
+          else
+            # Create the release
+            PRERELEASE_FLAG=""
+            if [[ "${{ inputs.version }}" == *"-"* ]]; then
+              PRERELEASE_FLAG="--prerelease"
+            fi
+
+            gh release create "v${{ inputs.version }}" \
+              --title "Release v${{ inputs.version }}" \
+              --notes "${{ inputs.release_notes }}" \
+              $PRERELEASE_FLAG
+
+            echo "Created release v${{ inputs.version }}"
+            echo "created=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -144,6 +172,7 @@ jobs:
             type=raw,value=latest,enable=${{ !contains(inputs.version, '-') }}
 
       - name: Build and push Docker image
+        id: docker_build
         uses: docker/build-push-action@v5
         with:
           context: .

@@ -17,7 +17,7 @@
 		<h1 class="text-7xl font-light tracking-tight text-white sm:text-8xl lg:text-9xl">
 			OpenStreetlifting
 		</h1>
-		<p class="mt-8 text-xl leading-8 font-extralight text-zinc-400 sm:text-2xl">
+		<p class="mt-8 text-xl leading-8 font-light text-zinc-500 sm:text-2xl">
 			Open and permanent database of streetlifting
 		</p>
 	</div>
@@ -25,64 +25,102 @@
 
 <!-- Cards Section -->
 <div class="mx-auto max-w-7xl px-6 pb-24">
-	<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+	<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 		<!-- Global Ranking Card -->
-		<a href={resolve('/rankings')} class="group block">
+		<a
+			href={resolve('/rankings')}
+			class="group block transition-all duration-200 hover:scale-[1.01]"
+		>
 			<Card
-				class="h-full cursor-pointer p-8 transition-all duration-200 hover:border-zinc-700 hover:bg-zinc-900/80"
+				class="relative h-full overflow-hidden border-zinc-800/60 p-8 backdrop-blur-sm transition-all duration-200 hover:border-zinc-700/60 hover:shadow-lg hover:shadow-zinc-800/50"
 			>
 				<div class="flex flex-col items-start gap-6">
-					<div class="rounded-lg bg-zinc-800/50 p-4">
+					<!-- Small foreground icon -->
+					<div
+						class="rounded-xl bg-zinc-800/60 p-3 transition-all duration-200 group-hover:bg-zinc-700/60"
+					>
 						<svg
-							class="h-12 w-12 text-zinc-300"
-							fill="none"
-							stroke="currentColor"
+							class="h-8 w-8 text-zinc-400 transition-colors group-hover:text-white"
+							fill="currentColor"
 							viewBox="0 0 24 24"
 						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="1.5"
-								d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-							/>
+							<path d="M5 3h4v18H5V3zm7 4h4v14h-4V7zm7 7h4v7h-4v-7z" />
 						</svg>
 					</div>
-					<div>
-						<h2 class="mb-2 text-2xl font-semibold text-white">Global Ranking</h2>
-						<p class="leading-relaxed text-zinc-400">
+					<div class="space-y-2">
+						<h2 class="text-2xl font-medium text-white">Global Ranking</h2>
+						<p class="leading-relaxed font-light text-zinc-500">
 							View worldwide rankings and compare performances across all athletes
 						</p>
+						<div
+							class="flex items-center gap-2 pt-2 text-sm font-medium text-zinc-400 transition-colors group-hover:text-white"
+						>
+							<span>Explore rankings</span>
+							<svg
+								class="h-4 w-4 transition-transform group-hover:translate-x-1"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M17 8l4 4m0 0l-4 4m4-4H3"
+								/>
+							</svg>
+						</div>
 					</div>
 				</div>
 			</Card>
 		</a>
 
 		<!-- Competitions Card -->
-		<a href={resolve('/competitions')} class="group block">
+		<a
+			href={resolve('/competitions')}
+			class="group block transition-all duration-200 hover:scale-[1.01]"
+		>
 			<Card
-				class="h-full cursor-pointer p-8 transition-all duration-200 hover:border-zinc-700 hover:bg-zinc-900/80"
+				class="relative h-full overflow-hidden border-zinc-800/60 p-8 backdrop-blur-sm transition-all duration-200 hover:border-zinc-700/60 hover:shadow-lg hover:shadow-zinc-800/50"
 			>
 				<div class="flex flex-col items-start gap-6">
-					<div class="rounded-lg bg-zinc-800/50 p-4">
+					<!-- Small foreground icon -->
+					<div
+						class="rounded-xl bg-zinc-800/60 p-3 transition-all duration-200 group-hover:bg-zinc-700/60"
+					>
 						<svg
-							class="h-12 w-12 text-zinc-300"
-							fill="none"
-							stroke="currentColor"
+							class="h-8 w-8 text-zinc-400 transition-colors group-hover:text-white"
+							fill="currentColor"
 							viewBox="0 0 24 24"
 						>
 							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="1.5"
-								d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+								d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"
 							/>
 						</svg>
 					</div>
-					<div>
-						<h2 class="mb-2 text-2xl font-semibold text-white">Competitions</h2>
-						<p class="leading-relaxed text-zinc-400">
+					<div class="space-y-2">
+						<h2 class="text-2xl font-medium text-white">Competitions</h2>
+						<p class="leading-relaxed font-light text-zinc-500">
 							Explore upcoming and past competitions from around the world
 						</p>
+						<div
+							class="flex items-center gap-2 pt-2 text-sm font-medium text-zinc-400 transition-colors group-hover:text-white"
+						>
+							<span>Browse competitions</span>
+							<svg
+								class="h-4 w-4 transition-transform group-hover:translate-x-1"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M17 8l4 4m0 0l-4 4m4-4H3"
+								/>
+							</svg>
+						</div>
 					</div>
 				</div>
 			</Card>

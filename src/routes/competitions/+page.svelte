@@ -1,9 +1,37 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { Card } from '$lib/components/ui';
+	import { Card, Breadcrumb } from '$lib/components/ui';
 	import { resolve } from '$app/paths';
 
 	let { data }: { data: PageData } = $props();
+
+	// Search and filter state
+	let searchQuery = $state('');
+	let statusFilter = $state<string>('all');
+
+	// Filtered competitions
+	let filteredCompetitions = $derived(() => {
+		let result = data.competitions;
+
+		// Filter by search query
+		if (searchQuery.trim()) {
+			const query = searchQuery.toLowerCase();
+			result = result.filter(
+				(comp) =>
+					comp.name.toLowerCase().includes(query) ||
+					comp.city.toLowerCase().includes(query) ||
+					comp.country.toLowerCase().includes(query) ||
+					comp.federation.name.toLowerCase().includes(query)
+			);
+		}
+
+		// Filter by status
+		if (statusFilter !== 'all') {
+			result = result.filter((comp) => comp.status === statusFilter);
+		}
+
+		return result;
+	});
 </script>
 
 <svelte:head>
@@ -12,12 +40,80 @@
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-6 py-12">
+	<Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Competitions' }]} />
+
 	<!-- Header -->
-	<div class="mb-12">
+	<div class="mb-8">
 		<h1 class="mb-4 text-5xl font-light text-white">Competitions</h1>
 		<p class="text-lg font-extralight text-zinc-400">
 			Browse all streetlifting competitions from around the world
 		</p>
+	</div>
+
+	<!-- Search and Filters -->
+	<div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+		<!-- Search Bar -->
+		<div class="relative flex-1">
+			<svg
+				class="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-zinc-500"
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+				stroke-width="2"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+				/>
+			</svg>
+			<input
+				type="text"
+				bind:value={searchQuery}
+				placeholder="Search competitions, cities, or federations..."
+				class="w-full rounded-lg border border-zinc-800 bg-zinc-900/50 py-2.5 pr-4 pl-10 text-sm text-white placeholder-zinc-500 transition-colors focus:border-zinc-700 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950 focus:outline-none"
+			/>
+		</div>
+
+		<!-- Status Filter -->
+		<div class="flex gap-2">
+			<button
+				onclick={() => (statusFilter = 'all')}
+				class="rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950 focus:outline-none
+					{statusFilter === 'all'
+					? 'bg-white text-zinc-950'
+					: 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300'}"
+			>
+				All
+			</button>
+			<button
+				onclick={() => (statusFilter = 'upcoming')}
+				class="rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950 focus:outline-none
+					{statusFilter === 'upcoming'
+					? 'bg-blue-500 text-white'
+					: 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300'}"
+			>
+				Planned
+			</button>
+			<button
+				onclick={() => (statusFilter = 'ongoing')}
+				class="rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950 focus:outline-none
+					{statusFilter === 'ongoing'
+					? 'bg-purple-500 text-white'
+					: 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300'}"
+			>
+				Ongoing
+			</button>
+			<button
+				onclick={() => (statusFilter = 'completed')}
+				class="rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950 focus:outline-none
+					{statusFilter === 'completed'
+					? 'bg-emerald-500 text-white'
+					: 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300'}"
+			>
+				Completed
+			</button>
+		</div>
 	</div>
 
 	{#if data.error}
@@ -26,17 +122,35 @@
 				<p class="text-red-400">{data.error}</p>
 			</div>
 		</Card>
-	{:else if data.competitions.length === 0}
+	{:else if filteredCompetitions().length === 0}
 		<Card class="p-8">
 			<div class="text-center">
-				<p class="text-zinc-400">No competitions found</p>
+				<p class="text-zinc-400">
+					{searchQuery || statusFilter !== 'all'
+						? 'No competitions match your filters'
+						: 'No competitions found'}
+				</p>
+				{#if searchQuery || statusFilter !== 'all'}
+					<button
+						onclick={() => {
+							searchQuery = '';
+							statusFilter = 'all';
+						}}
+						class="mt-4 text-sm text-zinc-500 underline hover:text-zinc-300 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950 focus:outline-none"
+					>
+						Clear filters
+					</button>
+				{/if}
 			</div>
 		</Card>
 	{:else}
 		<!-- Competitions Grid -->
 		<div class="grid grid-cols-1 gap-3">
-			{#each data.competitions as competition (competition.slug)}
-				<a href={resolve(`/competitions/${competition.slug}`)} class="group block">
+			{#each filteredCompetitions() as competition (competition.slug)}
+				<a
+					href={resolve(`/competitions/${competition.slug}`)}
+					class="group block rounded-xl focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950 focus:outline-none"
+				>
 					<Card
 						class="cursor-pointer p-5 transition-all duration-150 hover:border-zinc-700/60 hover:bg-zinc-900/60"
 					>
@@ -176,9 +290,13 @@
 		</div>
 
 		<!-- Total Count -->
-		{#if data.competitions.length > 0}
+		{#if filteredCompetitions().length > 0}
 			<div class="mt-8 text-center text-sm text-zinc-500">
-				Showing {data.competitions.length} competitions
+				Showing {filteredCompetitions().length}
+				{#if searchQuery || statusFilter !== 'all'}
+					of {data.competitions.length}
+				{/if}
+				competitions
 			</div>
 		{/if}
 	{/if}

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { Card } from '$lib/components/ui';
+	import type { PersonalRecord } from '$lib/types/athlete';
+	import { Card, Breadcrumb } from '$lib/components/ui';
+	import { MovementIcon } from '$lib/components/icons';
 	import { resolve } from '$app/paths';
 
 	let { data }: { data: PageData } = $props();
@@ -25,6 +27,73 @@
 		const codePoints = [...countryCode.toUpperCase()].map((char) => 127397 + char.charCodeAt(0));
 		return String.fromCodePoint(...codePoints);
 	}
+
+	// Get color classes for movement type
+	function getMovementColors(movementName: string) {
+		const normalized = movementName.toLowerCase().trim();
+
+		if (normalized.includes('muscle') && normalized.includes('up')) {
+			return {
+				bg: 'bg-gradient-to-br from-purple-600/20 to-blue-600/20',
+				icon: 'text-purple-400',
+				border: 'border-purple-900/40',
+				shadow: 'shadow-purple-900/20'
+			};
+		} else if (normalized.includes('pull') && normalized.includes('up')) {
+			return {
+				bg: 'bg-gradient-to-br from-blue-600/20 to-cyan-600/20',
+				icon: 'text-blue-400',
+				border: 'border-blue-900/40',
+				shadow: 'shadow-blue-900/20'
+			};
+		} else if (normalized.includes('dip')) {
+			return {
+				bg: 'bg-gradient-to-br from-emerald-600/20 to-green-600/20',
+				icon: 'text-emerald-400',
+				border: 'border-emerald-900/40',
+				shadow: 'shadow-emerald-900/20'
+			};
+		} else if (normalized.includes('squat')) {
+			return {
+				bg: 'bg-gradient-to-br from-orange-600/20 to-red-600/20',
+				icon: 'text-orange-400',
+				border: 'border-orange-900/40',
+				shadow: 'shadow-orange-900/20'
+			};
+		}
+
+		return {
+			bg: 'bg-gradient-to-br from-zinc-600/20 to-zinc-700/20',
+			icon: 'text-zinc-400',
+			border: 'border-zinc-900/40',
+			shadow: 'shadow-zinc-900/20'
+		};
+	}
+
+	// Sort personal records by movement type: Muscle up, Pull up, Dips, Squat
+	function sortPersonalRecords(records: PersonalRecord[]) {
+		// Define the desired order with priority values (lower = higher priority)
+		const movementPriority: Record<string, number> = {
+			'muscle up': 1,
+			'muscle-up': 1,
+			muscleup: 1,
+			'pull up': 2,
+			'pull-up': 2,
+			pullup: 2,
+			dips: 3,
+			dip: 3,
+			squat: 4,
+			squats: 4
+		};
+
+		// Normalize movement name for consistent comparison
+		const getPriority = (movementName: string): number => {
+			const normalized = movementName.toLowerCase().trim();
+			return movementPriority[normalized] ?? 999; // Unknown movements go to the end
+		};
+
+		return [...records].sort((a, b) => getPriority(a.movement_name) - getPriority(b.movement_name));
+	}
 </script>
 
 <svelte:head>
@@ -36,20 +105,16 @@
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-6 py-12">
+	<Breadcrumb
+		items={[
+			{ label: 'Home', href: '/' },
+			{ label: 'Athletes' },
+			{ label: `${athlete.first_name} ${athlete.last_name}` }
+		]}
+	/>
+
 	<!-- Athlete Header -->
 	<div class="mb-12">
-		<div class="mb-6">
-			<a
-				href={resolve('/competitions')}
-				class="inline-flex items-center gap-2 text-sm text-zinc-500 transition-colors hover:text-zinc-300"
-			>
-				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-					<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-				</svg>
-				Back to competitions
-			</a>
-		</div>
-
 		<div class="mb-4 flex items-center gap-4">
 			<h1 class="text-5xl font-light text-white">
 				{athlete.first_name}
@@ -105,9 +170,11 @@
 		<div class="mb-8">
 			<h2 class="mb-4 text-2xl font-medium text-white">Personal Records</h2>
 			<div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-				{#each athlete.personal_records as pr (pr.movement_name)}
-					<Card class="p-4">
-						<div class="mb-1 text-sm font-medium text-zinc-400">{pr.movement_name}</div>
+				{#each sortPersonalRecords(athlete.personal_records) as pr (pr.movement_name)}
+					<Card
+						class="p-6 transition-all duration-200 hover:scale-[1.02] hover:border-zinc-700/60 hover:shadow-lg hover:shadow-zinc-900/50"
+					>
+						<div class="mb-2 text-sm font-medium text-zinc-400">{pr.movement_name}</div>
 						<div class="mb-2 text-3xl font-semibold text-white">{formatWeight(pr.max_weight)}</div>
 						<div class="text-xs text-zinc-500">
 							<a
@@ -131,7 +198,8 @@
 	<div>
 		<h2 class="mb-4 text-2xl font-medium text-white">Competition History</h2>
 		{#if athlete.competitions && athlete.competitions.length > 0}
-			<Card class="p-6">
+			<!-- Desktop Table -->
+			<Card class="hidden p-6 md:block">
 				<div class="overflow-x-auto">
 					<table class="w-full text-sm">
 						<thead>
@@ -154,7 +222,7 @@
 									<td class="px-4 py-3">
 										<a
 											href={resolve(`/competitions/${competition.competition_slug}`)}
-											class="text-white hover:text-zinc-300 hover:underline"
+											class="text-white hover:text-zinc-300 hover:underline focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950 focus:outline-none"
 										>
 											{competition.competition_name}
 										</a>
@@ -181,6 +249,52 @@
 					</table>
 				</div>
 			</Card>
+
+			<!-- Mobile Card Layout -->
+			<div class="grid gap-3 md:hidden">
+				{#each athlete.competitions as competition (competition.competition_id)}
+					<Card
+						class="p-4 transition-all duration-200 hover:border-zinc-700/60 hover:shadow-lg hover:shadow-zinc-900/50 {competition.is_disqualified
+							? 'opacity-50'
+							: ''}"
+					>
+						<a
+							href={resolve(`/competitions/${competition.competition_slug}`)}
+							class="mb-3 block text-base font-medium text-white hover:text-zinc-300 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950 focus:outline-none"
+						>
+							{competition.competition_name}
+						</a>
+						<div class="grid grid-cols-2 gap-3 text-sm">
+							<div>
+								<div class="text-xs text-zinc-500">Date</div>
+								<div class="text-zinc-400">{formatDate(competition.competition_date)}</div>
+							</div>
+							<div>
+								<div class="text-xs text-zinc-500">Category</div>
+								<div class="text-zinc-400">{competition.category_name}</div>
+							</div>
+							<div>
+								<div class="text-xs text-zinc-500">Rank</div>
+								<div class="text-white">
+									{#if competition.is_disqualified}
+										<span class="text-red-400">DQ</span>
+									{:else}
+										{competition.rank || '-'}
+									{/if}
+								</div>
+							</div>
+							<div>
+								<div class="text-xs text-zinc-500">Total</div>
+								<div class="font-medium text-white">{formatWeight(competition.total)}</div>
+							</div>
+							<div>
+								<div class="text-xs text-zinc-500">RIS Score</div>
+								<div class="text-zinc-400">{competition.ris_score || '-'}</div>
+							</div>
+						</div>
+					</Card>
+				{/each}
+			</div>
 		{:else}
 			<Card class="p-8">
 				<p class="text-center text-zinc-400">No competition history available</p>

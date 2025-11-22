@@ -7,10 +7,6 @@ on:
         description: 'Semantic version (e.g., 1.0.0)'
         required: true
         type: string
-      release_notes:
-        description: 'What changed in this release?'
-        required: true
-        type: string
 
 env:
   DOCKER_IMAGE: dirdros/openstreetlifting-frontend
@@ -125,6 +121,44 @@ jobs:
             echo "created=true" >> $GITHUB_OUTPUT
           fi
 
+      - name: Generate changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          configuration: .github/changelog-config.json
+          toTag: v${{ inputs.version }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update CHANGELOG.md
+        run: |
+          # Get current date
+          RELEASE_DATE=$(date +%Y-%m-%d)
+
+          # Create new changelog entry
+          NEW_ENTRY="## [${{ inputs.version }}] - $RELEASE_DATE\n\n${{ steps.changelog.outputs.changelog }}\n"
+
+          # Insert after [Unreleased] section
+          sed -i.bak "/## \[Unreleased\]/a\\
+          \\
+          $NEW_ENTRY" CHANGELOG.md
+
+          rm CHANGELOG.md.bak
+
+          # Update comparison links at bottom
+          REPO_URL="https://github.com/${{ github.repository }}"
+          sed -i.bak "s|\[Unreleased\]:.*|[Unreleased]: $REPO_URL/compare/v${{ inputs.version }}...HEAD|" CHANGELOG.md
+          echo "[${{ inputs.version }}]: $REPO_URL/releases/tag/v${{ inputs.version }}" >> CHANGELOG.md
+
+          rm CHANGELOG.md.bak
+
+      - name: Commit CHANGELOG.md
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "chore: update CHANGELOG for v${{ inputs.version }}" || echo "No changes to commit"
+          git push origin main || echo "Nothing to push"
+
       - name: Create GitHub Release
         id: create_release
         env:
@@ -143,7 +177,7 @@ jobs:
 
             gh release create "v${{ inputs.version }}" \
               --title "Release v${{ inputs.version }}" \
-              --notes "${{ inputs.release_notes }}" \
+              --notes "${{ steps.changelog.outputs.changelog }}" \
               $PRERELEASE_FLAG
 
             echo "Created release v${{ inputs.version }}"

@@ -4,6 +4,7 @@
 	import { Card, Breadcrumb } from '$lib/components/ui';
 	import { SortIcon } from '$lib/components/icons';
 	import { resolve } from '$app/paths';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	let { data }: { data: PageData } = $props();
 	const { competition } = data;
@@ -11,10 +12,8 @@
 	type SortKey = 'total' | 'ris_score' | 'bodyweight' | string;
 	type SortDirection = 'asc' | 'desc';
 
-	// Store sort state per category using $state for reactivity
-	let categorySortState = $state<Map<string, { key: SortKey; direction: SortDirection }>>(
-		new Map()
-	);
+	// Store sort state per category (SvelteMap is already reactive)
+	let categorySortState = new SvelteMap<string, { key: SortKey; direction: SortDirection }>();
 
 	// Active category tab
 	let activeCategory = $state<string>(competition.categories?.[0]?.category.category_id || '');
@@ -52,7 +51,7 @@
 
 		current.key = key;
 		// Reassign to trigger reactivity
-		categorySortState = new Map(categorySortState.set(categoryId, current));
+		categorySortState = new SvelteMap(categorySortState.set(categoryId, current));
 	}
 
 	function sortParticipants(participants: Participant[], categoryId: string) {

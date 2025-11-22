@@ -11,22 +11,34 @@
 	<meta name="description" content={data.description} />
 </svelte:head>
 
-<!-- Hero Section -->
-<div class="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:py-40">
-	<div class="text-center">
-		<h1 class="text-7xl font-light tracking-tight text-white sm:text-8xl lg:text-9xl">
+<div
+	class="relative mx-auto max-w-7xl px-4 pt-16 pb-12 sm:px-6 sm:pt-24 sm:pb-16 lg:pt-32 lg:pb-20"
+>
+	<!-- Subtle ambient background glow - very minimal -->
+	<div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
+		<div></div>
+		<div
+			class="ambient-glow-2 absolute top-0 right-1/3 h-64 w-64 rounded-full bg-gradient-to-br from-purple-500/6 to-transparent blur-3xl"
+		></div>
+	</div>
+
+	<div class="text-left">
+		<h1
+			class="hero-title max-w-5xl text-7xl font-light tracking-tight text-white sm:text-8xl lg:text-9xl"
+		>
 			OpenStreetlifting
 		</h1>
-		<p class="mt-8 text-xl leading-8 font-light text-zinc-500 sm:text-2xl">
-			Open and permanent database of streetlifting
+		<p
+			class="mt-6 max-w-2xl text-xl leading-8 font-light text-zinc-500 sm:mt-8 sm:text-2xl sm:leading-9"
+		>
+			OpenStreetlifting is an open, collaborative project building a permanent and traceable archive
+			of all streetlifting data, accessible to everyone.
 		</p>
 	</div>
 </div>
 
-<!-- Cards Section -->
-<div class="mx-auto max-w-7xl px-6 pb-24">
-	<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-		<!-- Global Ranking Card -->
+<div class="mx-auto max-w-7xl px-4 pb-16 sm:px-6 sm:pb-20 lg:pb-24">
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8">
 		<a
 			href={resolve('/rankings')}
 			class="group block transition-all duration-200 hover:scale-[1.01]"
@@ -35,7 +47,6 @@
 				class="relative h-full overflow-hidden border-zinc-800/60 p-8 backdrop-blur-sm transition-all duration-200 hover:border-zinc-700/60 hover:shadow-lg hover:shadow-zinc-800/50"
 			>
 				<div class="flex flex-col items-start gap-6">
-					<!-- Small foreground icon -->
 					<div
 						class="rounded-xl bg-zinc-800/60 p-3 transition-all duration-200 group-hover:bg-zinc-700/60"
 					>
@@ -84,7 +95,6 @@
 				class="relative h-full overflow-hidden border-zinc-800/60 p-8 backdrop-blur-sm transition-all duration-200 hover:border-zinc-700/60 hover:shadow-lg hover:shadow-zinc-800/50"
 			>
 				<div class="flex flex-col items-start gap-6">
-					<!-- Small foreground icon -->
 					<div
 						class="rounded-xl bg-zinc-800/60 p-3 transition-all duration-200 group-hover:bg-zinc-700/60"
 					>
@@ -127,3 +137,22 @@
 		</a>
 	</div>
 </div>
+
+<style lang="postcss">
+	/* Apple-style lettering glow - subtle and thin around letters */
+	.hero-title {
+		text-shadow:
+			0 0 15px rgba(59, 130, 246, 0.5),
+			0 0 30px rgba(147, 51, 234, 0.4),
+			0 0 45px rgba(236, 72, 153, 0.25);
+	}
+
+	/* Subtle ambient background - static */
+	:global(.ambient-glow-1) {
+		opacity: 0.4;
+	}
+
+	:global(.ambient-glow-2) {
+		opacity: 0.3;
+	}
+</style>

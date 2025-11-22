@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.0] - 2025-11-17
 
 ### Added
+
 - Initial Docker image release
 - SvelteKit frontend application
 - Multi-platform Docker support (linux/amd64, linux/arm64)

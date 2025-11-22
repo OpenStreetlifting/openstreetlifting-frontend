@@ -2,7 +2,6 @@
 	import type { PageData } from './$types';
 	import type { PersonalRecord } from '$lib/types/athlete';
 	import { Card, Breadcrumb } from '$lib/components/ui';
-	import { MovementIcon } from '$lib/components/icons';
 	import { resolve } from '$app/paths';
 
 	let { data }: { data: PageData } = $props();
@@ -28,51 +27,7 @@
 		return String.fromCodePoint(...codePoints);
 	}
 
-	// Get color classes for movement type
-	function getMovementColors(movementName: string) {
-		const normalized = movementName.toLowerCase().trim();
-
-		if (normalized.includes('muscle') && normalized.includes('up')) {
-			return {
-				bg: 'bg-gradient-to-br from-purple-600/20 to-blue-600/20',
-				icon: 'text-purple-400',
-				border: 'border-purple-900/40',
-				shadow: 'shadow-purple-900/20'
-			};
-		} else if (normalized.includes('pull') && normalized.includes('up')) {
-			return {
-				bg: 'bg-gradient-to-br from-blue-600/20 to-cyan-600/20',
-				icon: 'text-blue-400',
-				border: 'border-blue-900/40',
-				shadow: 'shadow-blue-900/20'
-			};
-		} else if (normalized.includes('dip')) {
-			return {
-				bg: 'bg-gradient-to-br from-emerald-600/20 to-green-600/20',
-				icon: 'text-emerald-400',
-				border: 'border-emerald-900/40',
-				shadow: 'shadow-emerald-900/20'
-			};
-		} else if (normalized.includes('squat')) {
-			return {
-				bg: 'bg-gradient-to-br from-orange-600/20 to-red-600/20',
-				icon: 'text-orange-400',
-				border: 'border-orange-900/40',
-				shadow: 'shadow-orange-900/20'
-			};
-		}
-
-		return {
-			bg: 'bg-gradient-to-br from-zinc-600/20 to-zinc-700/20',
-			icon: 'text-zinc-400',
-			border: 'border-zinc-900/40',
-			shadow: 'shadow-zinc-900/20'
-		};
-	}
-
-	// Sort personal records by movement type: Muscle up, Pull up, Dips, Squat
 	function sortPersonalRecords(records: PersonalRecord[]) {
-		// Define the desired order with priority values (lower = higher priority)
 		const movementPriority: Record<string, number> = {
 			'muscle up': 1,
 			'muscle-up': 1,
@@ -86,7 +41,6 @@
 			squats: 4
 		};
 
-		// Normalize movement name for consistent comparison
 		const getPriority = (movementName: string): number => {
 			const normalized = movementName.toLowerCase().trim();
 			return movementPriority[normalized] ?? 999; // Unknown movements go to the end
@@ -165,7 +119,6 @@
 		</div>
 	</div>
 
-	<!-- Personal Records -->
 	{#if athlete.personal_records && athlete.personal_records.length > 0}
 		<div class="mb-8">
 			<h2 class="mb-4 text-2xl font-medium text-white">Personal Records</h2>
@@ -194,7 +147,6 @@
 		</div>
 	{/if}
 
-	<!-- Competition History -->
 	<div>
 		<h2 class="mb-4 text-2xl font-medium text-white">Competition History</h2>
 		{#if athlete.competitions && athlete.competitions.length > 0}

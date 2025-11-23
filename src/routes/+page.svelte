@@ -12,7 +12,7 @@
 </svelte:head>
 
 <div
-	class="relative mx-auto max-w-7xl px-4 pt-16 pb-12 sm:px-6 sm:pt-24 sm:pb-16 lg:pt-32 lg:pb-20"
+	class="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl flex-col justify-center px-4 py-8 sm:px-6 sm:py-12"
 >
 	<!-- Subtle ambient background glow - very minimal -->
 	<div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
@@ -22,7 +22,7 @@
 		></div>
 	</div>
 
-	<div class="text-left">
+	<div class="mb-12 text-left sm:mb-16">
 		<h1
 			class="hero-title max-w-5xl text-7xl font-light tracking-tight text-white sm:text-8xl lg:text-9xl"
 		>
@@ -31,13 +31,12 @@
 		<p
 			class="mt-6 max-w-2xl text-xl leading-8 font-light text-zinc-500 sm:mt-8 sm:text-2xl sm:leading-9"
 		>
-			OpenStreetlifting is an open, collaborative project building a permanent and traceable archive
+			OpenStreetlifting is an <span class="keyword-glow">open</span>, collaborative project building
+			a <span class="keyword-glow">permanent</span> and <span class="keyword-glow">traceable</span> archive
 			of all streetlifting data, accessible to everyone.
 		</p>
 	</div>
-</div>
 
-<div class="mx-auto max-w-7xl px-4 pb-16 sm:px-6 sm:pb-20 lg:pb-24">
 	<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8">
 		<a
 			href={resolve('/rankings')}
@@ -145,6 +144,14 @@
 			0 0 15px rgba(59, 130, 246, 0.5),
 			0 0 30px rgba(147, 51, 234, 0.4),
 			0 0 45px rgba(236, 72, 153, 0.25);
+	}
+
+	.keyword-glow {
+		color: rgb(228 228 231);
+		text-shadow:
+			0 0 10px rgba(59, 130, 246, 0.4),
+			0 0 20px rgba(147, 51, 234, 0.3),
+			0 0 30px rgba(236, 72, 153, 0.2);
 	}
 
 	/* Subtle ambient background - static */

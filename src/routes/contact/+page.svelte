@@ -23,7 +23,7 @@
 		<div class="grid gap-4 md:grid-cols-2">
 			<!-- GitHub Card -->
 			<a
-				href="https://github.com/OpenStreetlifting"
+				href="https://github.com/openstreetlifting"
 				target="_blank"
 				rel="noopener noreferrer"
 				class="group block transition-all duration-200 hover:scale-[1.02]"

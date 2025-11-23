@@ -10,7 +10,7 @@
 			href={resolve('/')}
 			class="text-lg font-light text-white transition-colors hover:text-zinc-200"
 		>
-			OpenStreetLifting
+			osl
 		</a>
 
 		<div class="flex items-center gap-4">
@@ -52,7 +52,7 @@
 			<div class="flex items-center gap-3">
 				<!-- GitHub Link -->
 				<a
-					href="https://github.com/OpenStreetlifting/openstreetlifting_backend"
+					href="https://github.com/openstreetlifting/openstreetlifting_backend"
 					target="_blank"
 					rel="noopener noreferrer"
 					class="text-zinc-400 transition-colors hover:text-white"

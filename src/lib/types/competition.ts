@@ -60,12 +60,16 @@ export interface Participant {
 	athlete: Athlete;
 	bodyweight: string | null;
 	rank: number | null;
+	category_rank: number | null;
+	competition_rank: number | null;
 	total: string;
 	ris_score: string | null;
 	is_disqualified: boolean;
 	disqualified_reason: string | null;
 	lifts: Lift[];
 }
+
+export type RankingScope = 'group' | 'category' | 'competition';
 
 export interface Category {
 	category_id: string;

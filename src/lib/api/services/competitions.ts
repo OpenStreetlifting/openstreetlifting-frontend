@@ -1,5 +1,10 @@
 import { apiClient } from '../client';
-import type { Competition, CompetitionDetail, CompetitionFilters } from '$lib/types/competition';
+import type {
+	Competition,
+	CompetitionDetail,
+	CompetitionFilters,
+	RankingScope
+} from '$lib/types/competition';
 
 export const competitionsService = {
 	async getAll(filters?: CompetitionFilters): Promise<Competition[]> {
@@ -8,7 +13,9 @@ export const competitionsService = {
 		});
 	},
 
-	async getById(id: string): Promise<CompetitionDetail> {
-		return apiClient.get<CompetitionDetail>(`/api/competitions/${id}/detailed`);
+	async getById(slug: string, rankingScope: RankingScope = 'group'): Promise<CompetitionDetail> {
+		return apiClient.get<CompetitionDetail>(`/api/competitions/${slug}/detailed`, {
+			params: { ranking_scope: rankingScope }
+		});
 	}
 };

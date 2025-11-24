@@ -1,13 +1,32 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import type { Participant } from '$lib/types/competition';
+	import type { Participant, RankingScope } from '$lib/types/competition';
 	import { Card, Breadcrumb } from '$lib/components/ui';
 	import { SortIcon } from '$lib/components/icons';
 	import { resolve } from '$app/paths';
 	import { SvelteMap } from 'svelte/reactivity';
+	import { competitionsService } from '$lib/api';
 
 	let { data }: { data: PageData } = $props();
-	const { competition } = data;
+
+	// Ranking scope state
+	let rankingScope = $state<RankingScope>('group');
+	let competitionData = $state(data.competition);
+	let isLoading = $state(false);
+
+	// Fetch competition data when ranking scope changes
+	async function updateRankingScope(newScope: RankingScope) {
+		if (newScope === rankingScope) return;
+		rankingScope = newScope;
+		isLoading = true;
+		try {
+			competitionData = await competitionsService.getById(data.competition.slug, rankingScope);
+		} catch (err) {
+			console.error('Failed to fetch competition with new ranking scope:', err);
+		} finally {
+			isLoading = false;
+		}
+	}
 
 	type SortKey = 'total' | 'ris_score' | 'bodyweight' | string;
 	type SortDirection = 'asc' | 'desc';
@@ -15,8 +34,35 @@
 	// Store sort state per category (SvelteMap is already reactive)
 	let categorySortState = new SvelteMap<string, { key: SortKey; direction: SortDirection }>();
 
-	// Active category tab
-	let activeCategory = $state<string>(competition.categories?.[0]?.category.category_id || '');
+	// Active category tab - allow manual override, but default to first category
+	let selectedCategoryId = $state<string | null>(null);
+	let activeCategory = $derived(
+		selectedCategoryId || competitionData.categories?.[0]?.category.category_id || ''
+	);
+
+	function getRankDisplay(participant: Participant): string {
+		if (participant.is_disqualified) return 'DQ';
+
+		let rank = participant.rank; // default to group rank
+		if (rankingScope === 'category' && participant.category_rank != null) {
+			rank = participant.category_rank;
+		} else if (rankingScope === 'competition' && participant.competition_rank != null) {
+			rank = participant.competition_rank;
+		}
+
+		return rank?.toString() || '-';
+	}
+
+	function getRankBadge(participant: Participant): string {
+		const rankStr = getRankDisplay(participant);
+		const rank = parseInt(rankStr);
+		if (isNaN(rank)) return '';
+
+		if (rank === 1) return '🥇';
+		if (rank === 2) return '🥈';
+		if (rank === 3) return '🥉';
+		return '';
+	}
 
 	function formatWeight(weight: string | null): string {
 		if (!weight) return '-';
@@ -31,27 +77,22 @@
 		});
 	}
 
-	function getSortState(categoryId: string) {
-		if (!categorySortState.has(categoryId)) {
-			categorySortState.set(categoryId, { key: 'total', direction: 'desc' });
-		}
-		return categorySortState.get(categoryId)!;
+	function getSortState(categoryId: string): { key: SortKey; direction: SortDirection } {
+		return categorySortState.get(categoryId) ?? { key: 'total', direction: 'desc' };
 	}
 
 	function toggleSort(categoryId: string, key: SortKey) {
-		const current = getSortState(categoryId);
+		const current = { ...getSortState(categoryId) };
 
 		if (current.key === key) {
-			// Toggle direction if same key
 			current.direction = current.direction === 'desc' ? 'asc' : 'desc';
 		} else {
-			// New key, default to desc (highest first) for weights and totals
 			current.direction = 'desc';
 		}
 
 		current.key = key;
-		// Reassign to trigger reactivity
-		categorySortState = new SvelteMap(categorySortState.set(categoryId, current));
+		categorySortState.set(categoryId, current);
+		categorySortState = categorySortState;
 	}
 
 	function sortParticipants(participants: Participant[], categoryId: string) {
@@ -90,8 +131,8 @@
 </script>
 
 <svelte:head>
-	<title>{competition.name} - OpenStreetlifting</title>
-	<meta name="description" content="Results and details for {competition.name}" />
+	<title>{competitionData.name} - OpenStreetlifting</title>
+	<meta name="description" content="Results and details for {competitionData.name}" />
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-6 py-12">
@@ -99,13 +140,53 @@
 		items={[
 			{ label: 'Home', href: '/' },
 			{ label: 'Competitions', href: '/competitions' },
-			{ label: competition.name }
+			{ label: competitionData.name }
 		]}
 	/>
 
+	<!-- Ranking Scope Selector -->
+	<div class="mb-6 flex items-center gap-4">
+		<label class="text-sm font-medium text-zinc-400">View Rankings By:</label>
+		<div class="flex gap-2">
+			<button
+				onclick={() => updateRankingScope('group')}
+				class="rounded-lg px-4 py-2 text-sm font-medium transition-colors {rankingScope ===
+				'group'
+					? 'bg-white text-zinc-900'
+					: 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'}"
+				disabled={isLoading}
+			>
+				Group
+			</button>
+			<button
+				onclick={() => updateRankingScope('category')}
+				class="rounded-lg px-4 py-2 text-sm font-medium transition-colors {rankingScope ===
+				'category'
+					? 'bg-white text-zinc-900'
+					: 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'}"
+				disabled={isLoading}
+			>
+				Category
+			</button>
+			<button
+				onclick={() => updateRankingScope('competition')}
+				class="rounded-lg px-4 py-2 text-sm font-medium transition-colors {rankingScope ===
+				'competition'
+					? 'bg-white text-zinc-900'
+					: 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'}"
+				disabled={isLoading}
+			>
+				Competition (RIS)
+			</button>
+		</div>
+		{#if isLoading}
+			<span class="text-sm text-zinc-500">Loading...</span>
+		{/if}
+	</div>
+
 	<!-- Competition Header -->
 	<div class="mb-12">
-		<h1 class="mb-4 text-5xl font-light text-white">{competition.name}</h1>
+		<h1 class="mb-4 text-5xl font-light text-white">{competitionData.name}</h1>
 
 		<div class="flex flex-wrap gap-x-6 gap-y-3 text-base text-zinc-400">
 			<div class="flex items-center gap-2">
@@ -117,10 +198,10 @@
 					/>
 				</svg>
 				<span>
-					{#if competition.start_date}
-						{formatDate(competition.start_date)}
-						{#if competition.end_date && competition.start_date !== competition.end_date}
-							- {formatDate(competition.end_date)}
+					{#if competitionData.start_date}
+						{formatDate(competitionData.start_date)}
+						{#if competitionData.end_date && competitionData.start_date !== competitionData.end_date}
+							- {formatDate(competitionData.end_date)}
 						{/if}
 					{/if}
 				</span>
@@ -139,7 +220,7 @@
 						d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
 					/>
 				</svg>
-				<span>{competition.venue}, {competition.city}, {competition.country}</span>
+				<span>{competitionData.venue}, {competitionData.city}, {competitionData.country}</span>
 			</div>
 
 			<div class="flex items-center gap-2">
@@ -150,20 +231,22 @@
 						d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
 					/>
 				</svg>
-				<span>{competition.federation.name} ({competition.federation.abbreviation})</span>
+				<span
+					>{competitionData.federation.name} ({competitionData.federation.abbreviation})</span
+				>
 			</div>
 		</div>
 	</div>
 
 	<!-- Categories -->
-	{#if competition.categories && competition.categories.length > 0}
+	{#if competitionData.categories && competitionData.categories.length > 0}
 		<!-- Category Tabs -->
-		{#if competition.categories.length > 1}
+		{#if competitionData.categories.length > 1}
 			<div class="mb-6 border-b border-zinc-800">
 				<nav class="-mb-px flex gap-2 overflow-x-auto" aria-label="Category tabs">
-					{#each competition.categories as categoryDetail (categoryDetail.category.category_id)}
+					{#each competitionData.categories as categoryDetail (categoryDetail.category.category_id)}
 						<button
-							onclick={() => (activeCategory = categoryDetail.category.category_id)}
+							onclick={() => (selectedCategoryId = categoryDetail.category.category_id)}
 							class="border-b-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950 focus:outline-none
 								{activeCategory === categoryDetail.category.category_id
 								? 'border-white text-white'
@@ -178,7 +261,7 @@
 
 		<!-- Category Content -->
 		<div>
-			{#each competition.categories as categoryDetail (categoryDetail.category.category_id)}
+			{#each competitionData.categories as categoryDetail (categoryDetail.category.category_id)}
 				{#if activeCategory === categoryDetail.category.category_id}
 					<Card class="p-6">
 						<!-- Category Header -->
@@ -277,14 +360,24 @@
 												<td class="px-4 py-3 text-white">
 													{#if participant.is_disqualified}
 														<span class="text-red-400">DQ</span>
-													{:else if participant.rank === 1}
-														<span class="font-semibold text-yellow-400">🥇 {participant.rank}</span>
-													{:else if participant.rank === 2}
-														<span class="font-semibold text-zinc-300">🥈 {participant.rank}</span>
-													{:else if participant.rank === 3}
-														<span class="font-semibold text-orange-400">🥉 {participant.rank}</span>
 													{:else}
-														{participant.rank || '-'}
+														{@const rankStr = getRankDisplay(participant)}
+														{@const rank = parseInt(rankStr)}
+														{@const badge = getRankBadge(participant)}
+														{#if badge && rank <= 3}
+															<span
+																class="font-semibold {rank === 1
+																	? 'text-yellow-400'
+																	: rank === 2
+																		? 'text-zinc-300'
+																		: 'text-orange-400'}"
+															>
+																{badge}
+																{rankStr}
+															</span>
+														{:else}
+															{rankStr}
+														{/if}
 													{/if}
 												</td>
 												<td class="px-4 py-3 text-white">

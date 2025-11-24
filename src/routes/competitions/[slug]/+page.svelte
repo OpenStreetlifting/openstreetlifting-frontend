@@ -1,85 +1,37 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import type { Participant, RankingScope } from '$lib/types/competition';
+	import type { Participant } from '$lib/types/competition';
 	import { Card, Breadcrumb } from '$lib/components/ui';
 	import { SortIcon } from '$lib/components/icons';
 	import { resolve } from '$app/paths';
 	import { SvelteMap } from 'svelte/reactivity';
-	import { competitionsService } from '$lib/api';
 
 	let { data }: { data: PageData } = $props();
-
-	// Ranking scope state
-	let rankingScope = $state<RankingScope>('group');
-	let competitionData = $state(data.competition);
-	let isLoading = $state(false);
-
-	// Fetch competition data when ranking scope changes
-	async function updateRankingScope(newScope: RankingScope) {
-		if (newScope === rankingScope) return;
-		rankingScope = newScope;
-		isLoading = true;
-		try {
-			competitionData = await competitionsService.getById(data.competition.slug, rankingScope);
-		} catch (err) {
-			console.error('Failed to fetch competition with new ranking scope:', err);
-		} finally {
-			isLoading = false;
-		}
-	}
+	const competition = data.competition;
 
 	type SortKey = 'total' | 'ris_score' | 'bodyweight' | string;
 	type SortDirection = 'asc' | 'desc';
 
 	// Store sort state per category (SvelteMap is already reactive)
-	let categorySortState = new SvelteMap<string, { key: SortKey; direction: SortDirection }>();
+	const categorySortState = new SvelteMap<string, { key: SortKey; direction: SortDirection }>();
 
 	// Active category tab - allow manual override, but default to first category
 	let selectedCategoryId = $state<string | null>(null);
-	let activeCategory = $derived(
-		selectedCategoryId || competitionData.categories?.[0]?.category.category_id || ''
+	const activeCategory = $derived(
+		selectedCategoryId || competition.categories?.[0]?.category.category_id || ''
 	);
 
-	function getRankDisplay(participant: Participant): string {
-		if (participant.is_disqualified) return 'DQ';
+	const formatWeight = (weight: string | null): string => (weight ? `${weight} kg` : '-');
 
-		let rank = participant.rank; // default to group rank
-		if (rankingScope === 'category' && participant.category_rank != null) {
-			rank = participant.category_rank;
-		} else if (rankingScope === 'competition' && participant.competition_rank != null) {
-			rank = participant.competition_rank;
-		}
-
-		return rank?.toString() || '-';
-	}
-
-	function getRankBadge(participant: Participant): string {
-		const rankStr = getRankDisplay(participant);
-		const rank = parseInt(rankStr);
-		if (isNaN(rank)) return '';
-
-		if (rank === 1) return '🥇';
-		if (rank === 2) return '🥈';
-		if (rank === 3) return '🥉';
-		return '';
-	}
-
-	function formatWeight(weight: string | null): string {
-		if (!weight) return '-';
-		return `${weight} kg`;
-	}
-
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString('en-US', {
+	const formatDate = (dateString: string): string =>
+		new Date(dateString).toLocaleDateString('en-US', {
 			month: 'long',
 			day: 'numeric',
 			year: 'numeric'
 		});
-	}
 
-	function getSortState(categoryId: string): { key: SortKey; direction: SortDirection } {
-		return categorySortState.get(categoryId) ?? { key: 'total', direction: 'desc' };
-	}
+	const getSortState = (categoryId: string): { key: SortKey; direction: SortDirection} =>
+		categorySortState.get(categoryId) ?? { key: 'rank', direction: 'asc' };
 
 	function toggleSort(categoryId: string, key: SortKey) {
 		const current = { ...getSortState(categoryId) };
@@ -87,12 +39,11 @@
 		if (current.key === key) {
 			current.direction = current.direction === 'desc' ? 'asc' : 'desc';
 		} else {
-			current.direction = 'desc';
+			current.direction = key === 'rank' ? 'asc' : 'desc';
 		}
 
 		current.key = key;
 		categorySortState.set(categoryId, current);
-		categorySortState = categorySortState;
 	}
 
 	function sortParticipants(participants: Participant[], categoryId: string) {
@@ -102,7 +53,13 @@
 			let valueA: number;
 			let valueB: number;
 
-			if (key === 'total') {
+			if (key === 'rank') {
+				// Rank: null/undefined go last, then sort by numeric value
+				if (a.rank == null) return 1;
+				if (b.rank == null) return -1;
+				valueA = a.rank;
+				valueB = b.rank;
+			} else if (key === 'total') {
 				valueA = parseFloat(a.total) || 0;
 				valueB = parseFloat(b.total) || 0;
 			} else if (key === 'ris_score') {
@@ -110,7 +67,7 @@
 				valueB = parseFloat(b.ris_score || '0') || 0;
 			} else if (key === 'bodyweight') {
 				valueA = parseFloat(a.bodyweight || '0') || 0;
-				valueB = parseFloat(b.bodyweight || '0') || 0;
+				valueB = parseFloat(a.bodyweight || '0') || 0;
 			} else {
 				// Sort by movement name (key is the movement name)
 				const liftA = a.lifts.find((l) => l.movement_name === key);
@@ -123,16 +80,15 @@
 		});
 	}
 
-	function getSortDirection(categoryId: string, key: SortKey): 'none' | 'asc' | 'desc' {
+	const getSortDirection = (categoryId: string, key: SortKey): 'none' | 'asc' | 'desc' => {
 		const { key: currentKey, direction } = getSortState(categoryId);
-		if (currentKey !== key) return 'none';
-		return direction;
-	}
+		return currentKey !== key ? 'none' : direction;
+	};
 </script>
 
 <svelte:head>
-	<title>{competitionData.name} - OpenStreetlifting</title>
-	<meta name="description" content="Results and details for {competitionData.name}" />
+	<title>{competition.name} - OpenStreetlifting</title>
+	<meta name="description" content="Results and details for {competition.name}" />
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-6 py-12">
@@ -140,53 +96,13 @@
 		items={[
 			{ label: 'Home', href: '/' },
 			{ label: 'Competitions', href: '/competitions' },
-			{ label: competitionData.name }
+			{ label: competition.name }
 		]}
 	/>
 
-	<!-- Ranking Scope Selector -->
-	<div class="mb-6 flex items-center gap-4">
-		<label class="text-sm font-medium text-zinc-400">View Rankings By:</label>
-		<div class="flex gap-2">
-			<button
-				onclick={() => updateRankingScope('group')}
-				class="rounded-lg px-4 py-2 text-sm font-medium transition-colors {rankingScope ===
-				'group'
-					? 'bg-white text-zinc-900'
-					: 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'}"
-				disabled={isLoading}
-			>
-				Group
-			</button>
-			<button
-				onclick={() => updateRankingScope('category')}
-				class="rounded-lg px-4 py-2 text-sm font-medium transition-colors {rankingScope ===
-				'category'
-					? 'bg-white text-zinc-900'
-					: 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'}"
-				disabled={isLoading}
-			>
-				Category
-			</button>
-			<button
-				onclick={() => updateRankingScope('competition')}
-				class="rounded-lg px-4 py-2 text-sm font-medium transition-colors {rankingScope ===
-				'competition'
-					? 'bg-white text-zinc-900'
-					: 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'}"
-				disabled={isLoading}
-			>
-				Competition (RIS)
-			</button>
-		</div>
-		{#if isLoading}
-			<span class="text-sm text-zinc-500">Loading...</span>
-		{/if}
-	</div>
-
 	<!-- Competition Header -->
 	<div class="mb-12">
-		<h1 class="mb-4 text-5xl font-light text-white">{competitionData.name}</h1>
+		<h1 class="mb-4 text-5xl font-light text-white">{competition.name}</h1>
 
 		<div class="flex flex-wrap gap-x-6 gap-y-3 text-base text-zinc-400">
 			<div class="flex items-center gap-2">
@@ -198,10 +114,10 @@
 					/>
 				</svg>
 				<span>
-					{#if competitionData.start_date}
-						{formatDate(competitionData.start_date)}
-						{#if competitionData.end_date && competitionData.start_date !== competitionData.end_date}
-							- {formatDate(competitionData.end_date)}
+					{#if competition.start_date}
+						{formatDate(competition.start_date)}
+						{#if competition.end_date && competition.start_date !== competition.end_date}
+							- {formatDate(competition.end_date)}
 						{/if}
 					{/if}
 				</span>
@@ -220,7 +136,7 @@
 						d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
 					/>
 				</svg>
-				<span>{competitionData.venue}, {competitionData.city}, {competitionData.country}</span>
+				<span>{competition.venue}, {competition.city}, {competition.country}</span>
 			</div>
 
 			<div class="flex items-center gap-2">
@@ -231,20 +147,18 @@
 						d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
 					/>
 				</svg>
-				<span
-					>{competitionData.federation.name} ({competitionData.federation.abbreviation})</span
-				>
+				<span>{competition.federation.name} ({competition.federation.abbreviation})</span>
 			</div>
 		</div>
 	</div>
 
 	<!-- Categories -->
-	{#if competitionData.categories && competitionData.categories.length > 0}
+	{#if competition.categories?.length}
 		<!-- Category Tabs -->
-		{#if competitionData.categories.length > 1}
+		{#if competition.categories.length > 1}
 			<div class="mb-6 border-b border-zinc-800">
 				<nav class="-mb-px flex gap-2 overflow-x-auto" aria-label="Category tabs">
-					{#each competitionData.categories as categoryDetail (categoryDetail.category.category_id)}
+					{#each competition.categories as categoryDetail (categoryDetail.category.category_id)}
 						<button
 							onclick={() => (selectedCategoryId = categoryDetail.category.category_id)}
 							class="border-b-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950 focus:outline-none
@@ -261,7 +175,7 @@
 
 		<!-- Category Content -->
 		<div>
-			{#each competitionData.categories as categoryDetail (categoryDetail.category.category_id)}
+			{#each competition.categories as categoryDetail (categoryDetail.category.category_id)}
 				{#if activeCategory === categoryDetail.category.category_id}
 					<Card class="p-6">
 						<!-- Category Header -->
@@ -280,12 +194,21 @@
 						</div>
 
 						<!-- Participants -->
-						{#if categoryDetail.participants && categoryDetail.participants.length > 0}
+						{#if categoryDetail.participants?.length}
 							<div class="overflow-x-auto">
 								<table class="w-full text-sm">
 									<thead class="sticky top-0 z-10">
 										<tr class="border-b border-zinc-800 bg-zinc-900 shadow-lg shadow-zinc-950/50">
-											<th class="px-4 py-3 text-left font-medium text-zinc-400">Rank</th>
+											<th
+												class="cursor-pointer px-4 py-3 text-left font-medium text-zinc-400 transition-colors select-none hover:text-white"
+												onclick={() => toggleSort(categoryDetail.category.category_id, 'rank')}
+											>
+												Rank
+												<SortIcon
+													direction={getSortDirection(categoryDetail.category.category_id, 'rank')}
+													class="ml-1"
+												/>
+											</th>
 											<th class="px-4 py-3 text-left font-medium text-zinc-400">Athlete</th>
 											<th class="px-4 py-3 text-left font-medium text-zinc-400">Country</th>
 											<th
@@ -345,39 +268,30 @@
 									</thead>
 									<tbody>
 										{#each sortParticipants(categoryDetail.participants, categoryDetail.category.category_id) as participant (participant.athlete.athlete_id)}
+											{@const rank = participant.rank}
 											<tr
 												class="border-b border-zinc-800/50 transition-colors hover:bg-zinc-900/30
 												{participant.is_disqualified
 													? 'opacity-50'
-													: participant.rank === 1
+													: rank === 1
 														? 'bg-gradient-to-r from-yellow-500/5 via-transparent to-transparent shadow-lg shadow-yellow-900/20'
-														: participant.rank === 2
+														: rank === 2
 															? 'bg-gradient-to-r from-zinc-400/5 via-transparent to-transparent'
-															: participant.rank === 3
+															: rank === 3
 																? 'bg-gradient-to-r from-orange-700/5 via-transparent to-transparent'
 																: ''}"
 											>
 												<td class="px-4 py-3 text-white">
 													{#if participant.is_disqualified}
 														<span class="text-red-400">DQ</span>
+													{:else if rank === 1}
+														<span class="font-semibold text-yellow-400">🥇 {rank}</span>
+													{:else if rank === 2}
+														<span class="font-semibold text-zinc-300">🥈 {rank}</span>
+													{:else if rank === 3}
+														<span class="font-semibold text-orange-400">🥉 {rank}</span>
 													{:else}
-														{@const rankStr = getRankDisplay(participant)}
-														{@const rank = parseInt(rankStr)}
-														{@const badge = getRankBadge(participant)}
-														{#if badge && rank <= 3}
-															<span
-																class="font-semibold {rank === 1
-																	? 'text-yellow-400'
-																	: rank === 2
-																		? 'text-zinc-300'
-																		: 'text-orange-400'}"
-															>
-																{badge}
-																{rankStr}
-															</span>
-														{:else}
-															{rankStr}
-														{/if}
+														{rank || '-'}
 													{/if}
 												</td>
 												<td class="px-4 py-3 text-white">

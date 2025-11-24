@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { Card, Breadcrumb } from '$lib/components/ui';
+	import { SortIcon } from '$lib/components/icons';
 	import { rankingsService } from '$lib/api';
 	import type { RankingEntry } from '$lib/types/ranking';
 	import { resolve } from '$app/paths';
@@ -205,17 +206,21 @@
 							<th class="px-4 py-3 text-left font-medium text-zinc-400">Athlete</th>
 							<th class="px-4 py-3 text-left font-medium text-zinc-400">Country</th>
 							{#each movements as movement (movement.value)}
-								<th class="px-4 py-3 text-left font-medium">
-									<button
-										onclick={() => {
-											movementFilter = movement.value;
-											handleFilterChange();
-										}}
-										class="transition-colors hover:text-white focus:outline-none
-											{movementFilter === movement.value ? 'text-white' : 'text-zinc-400'}"
-									>
-										{movement.label}
-									</button>
+								<th
+									class="cursor-pointer px-4 py-3 text-left font-medium transition-colors select-none hover:text-white {movementFilter ===
+									movement.value
+										? 'text-white'
+										: 'text-zinc-400'}"
+									onclick={() => {
+										movementFilter = movement.value;
+										handleFilterChange();
+									}}
+								>
+									{movement.label}
+									<SortIcon
+										direction={movementFilter === movement.value ? 'desc' : 'none'}
+										class="ml-1"
+									/>
 								</th>
 							{/each}
 							<th class="px-4 py-3 text-left font-medium text-zinc-400">Competition</th>
